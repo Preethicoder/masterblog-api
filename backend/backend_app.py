@@ -4,13 +4,14 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_bcrypt import Bcrypt
+from flask_swagger_ui import get_swaggerui_blueprint
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required
 )
 import os
 
 # Automatically set the absolute path
-DATA_FILE = os.path.join(os.path.dirname(__file__), "../data/post_data.json")
+DATA_FILE ="data/post_data.json"
 
 def load_posts():
     if not os.path.exists(DATA_FILE):
@@ -36,6 +37,21 @@ bcrypt = Bcrypt(app)
 app.config["JWT_SECRET_KEY"] = "secret"
 jwt = JWTManager(app)
 USERS = {}
+
+
+
+
+SWAGGER_URL="/api/docs"  # (1) swagger endpoint e.g. HTTP://localhost:5002/api/docs
+API_URL="/static/masterblog.json" # (2) ensure you create this dir and file
+
+swagger_ui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={
+        'app_name': 'Masterblog API' # (3) You can change this if you like
+    }
+)
+app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
 @app.before_request
 def log_request_info():
     print(f"Request Path: {request.path}")
@@ -126,7 +142,7 @@ def update_post(id):
 # Delete a Post
 @app.route('/api/posts/<int:id>', methods=['DELETE'])
 @limiter.limit("1/minute")
-@jwt_required()
+
 def delete_post(id):
     global POSTS
     post = find_post_by_id(id)
