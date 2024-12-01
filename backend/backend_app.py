@@ -1,4 +1,5 @@
 import json
+import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -8,21 +9,23 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required
 )
-import os
+
 
 # Automatically set the absolute path
 DATA_FILE =os.path.join(os.path.dirname(__file__), "data/post_data.json")
 
 def load_posts():
+    """Used to load post_data from the folder data"""
     if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "w") as fileobj:
-            json.dump([], fileobj)  # Initialize with an empty list if file doesn't exist
-    with open(DATA_FILE, "r") as fileobj:
-        return json.load(fileobj)
+        with open(DATA_FILE, "w", encoding="UTF-8") as file_obj:
+            json.dump([], file_obj)  # Initialize with an empty list if file doesn't exist
+    with open(DATA_FILE, "r", encoding="UTF-8") as file_obj:
+        return json.load(file_obj)
 
-def save_posts(posts):
-    with open(DATA_FILE, "w") as fileobj1:
-        json.dump(posts, fileobj1, indent=4)  # Save formatted JSON
+def save_posts(post_data):
+    """To write post_data to json file"""
+    with open(DATA_FILE, "w", encoding="UTF-8") as file_obj1:
+        json.dump(post_data, file_obj1, indent=4)  # Save formatted JSON
 
 # Load posts at the start
 POSTS = load_posts()
@@ -56,9 +59,11 @@ app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
 def log_request_info():
     print(f"Request Path: {request.path}")
     print(f"Query Parameters: {request.args}")
-# User Registration Endpoint
+
+
 @app.route('/api/register', methods=['POST'])
 def register():
+    """ User Registration Endpoint"""
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
@@ -73,9 +78,10 @@ def register():
     USERS[username] = hashed_password
     return jsonify({"message": "User registered successfully"}), 201
 
-# User Login Endpoint
+
 @app.route('/api/login', methods=['POST'])
 def login():
+    """User Login Endpoint"""
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
@@ -90,14 +96,16 @@ def login():
     access_token = create_access_token(identity=username)
     return jsonify({"access_token": access_token}), 200
 
-# Validate Post Data
+#
 def validate_post_data(new_post):
+    """Validate Post Data"""
     return "title" in new_post and "content" in new_post
 
-# Get or Create Posts
+
 @app.route('/api/posts', methods=['GET', 'POST'])
 @limiter.limit("10/minute")
 def posts():
+    """Get or Create Posts"""
     global POSTS
     if request.method == 'GET':
         # Sorting
@@ -109,7 +117,7 @@ def posts():
             return jsonify(sorted_posts), 200
         return jsonify(POSTS), 200
 
-    elif request.method == 'POST':
+    if request.method == 'POST':
         new_post = request.get_json()
         if not validate_post_data(new_post):
             return jsonify({"error": "Invalid post data"}), 400
@@ -121,16 +129,18 @@ def posts():
         save_posts(POSTS)  # Save to file
         return jsonify(new_post), 201
 
-# Find Post by ID
+
 def find_post_by_id(post_id):
+    """Find Post by ID"""
     return next((post for post in POSTS if post['id'] == post_id), None)
 
-# Update a Post
+
 @app.route('/api/posts/<int:id>', methods=['PUT'])
 @jwt_required()
-def update_post(id):
+def update_post(post_id):
+    """ Update a Post"""
     global POSTS
-    post = find_post_by_id(id)
+    post = find_post_by_id(post_id)
     if post is None:
         return jsonify({"error": "Post not found"}), 404
 
@@ -139,13 +149,13 @@ def update_post(id):
     save_posts(POSTS)  # Save updated data
     return jsonify(post), 200
 
-# Delete a Post
+#
 @app.route('/api/posts/<int:id>', methods=['DELETE'])
 @limiter.limit("1/minute")
-
-def delete_post(id):
+def delete_post(post_id):
+    """Delete a Post"""
     global POSTS
-    post = find_post_by_id(id)
+    post = find_post_by_id(post_id)
     if post is None:
         return jsonify({"error": "Post not found"}), 404
 
@@ -153,9 +163,10 @@ def delete_post(id):
     save_posts(POSTS)  # Save changes
     return jsonify(post), 200
 
-# Search Posts
+
 @app.route("/api/posts/search", methods=['GET'])
 def search_post():
+    """ Search Posts"""
     title_query = request.args.get('title', '').lower()
     content_query = request.args.get('content', '').lower()
 
@@ -167,9 +178,10 @@ def search_post():
 
     return jsonify(filtered_posts), 200
 
-# Paginate Posts
+
 @app.route('/api/posts-paginated', methods=['GET'])
 def posts_pagination():
+    """ Paginate Posts"""
     page = int(request.args.get('page', 1))
     limit = int(request.args.get('limit', 3))
     start_index = (page - 1) * limit
