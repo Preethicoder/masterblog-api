@@ -1,18 +1,19 @@
 import json
 import os
+
 from flask import Flask, jsonify, request
-from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from flask_bcrypt import Bcrypt
-from flask_swagger_ui import get_swaggerui_blueprint
+from flask_cors import CORS
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required
 )
-
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_swagger_ui import get_swaggerui_blueprint
 
 # Automatically set the absolute path
-DATA_FILE =os.path.join(os.path.dirname(__file__), "data/post_data.json")
+DATA_FILE = os.path.join(os.path.dirname(__file__), "data/post_data.json")
+
 
 def load_posts():
     """Used to load post_data from the folder data"""
@@ -22,10 +23,12 @@ def load_posts():
     with open(DATA_FILE, "r", encoding="UTF-8") as file_obj:
         return json.load(file_obj)
 
+
 def save_posts(post_data):
     """To write post_data to json file"""
     with open(DATA_FILE, "w", encoding="UTF-8") as file_obj1:
         json.dump(post_data, file_obj1, indent=4)  # Save formatted JSON
+
 
 # Load posts at the start
 POSTS = load_posts()
@@ -41,20 +44,19 @@ app.config["JWT_SECRET_KEY"] = "secret"
 jwt = JWTManager(app)
 USERS = {}
 
-
-
-
-SWAGGER_URL="/api/docs"  # (1) swagger endpoint e.g. HTTP://localhost:5002/api/docs
-API_URL="/static/masterblog.json" # (2) ensure you create this dir and file
+SWAGGER_URL = "/api/docs"  # (1) swagger endpoint e.g. HTTP://localhost:5002/api/docs
+API_URL = "/static/masterblog.json"  # (2) ensure you create this dir and file
 
 swagger_ui_blueprint = get_swaggerui_blueprint(
     SWAGGER_URL,
     API_URL,
     config={
-        'app_name': 'Masterblog API' # (3) You can change this if you like
+        'app_name': 'Masterblog API'  # (3) You can change this if you like
     }
 )
 app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
+
+
 @app.before_request
 def log_request_info():
     print(f"Request Path: {request.path}")
@@ -95,6 +97,7 @@ def login():
 
     access_token = create_access_token(identity=username)
     return jsonify({"access_token": access_token}), 200
+
 
 #
 def validate_post_data(new_post):
@@ -149,6 +152,7 @@ def update_post(post_id):
     save_posts(POSTS)  # Save updated data
     return jsonify(post), 200
 
+
 #
 @app.route('/api/posts/<int:id>', methods=['DELETE'])
 @limiter.limit("1/minute")
@@ -189,6 +193,7 @@ def posts_pagination():
 
     paginated_posts = POSTS[start_index:end_index]
     return jsonify(paginated_posts), 200
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002, debug=True)
