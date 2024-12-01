@@ -11,7 +11,7 @@ from flask_jwt_extended import (
 import os
 
 # Automatically set the absolute path
-DATA_FILE ="data/post_data.json"
+DATA_FILE ="/data/post_data.json"
 
 def load_posts():
     if not os.path.exists(DATA_FILE):
