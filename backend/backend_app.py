@@ -1,11 +1,10 @@
 import json
 import os
-
 from flask import Flask, jsonify, request
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import (
-    JWTManager, create_access_token, jwt_required
+    JWTManager, create_access_token
 )
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -59,6 +58,7 @@ app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
 
 @app.before_request
 def log_request_info():
+    """used to check the correctness of URL"""
     print(f"Request Path: {request.path}")
     print(f"Query Parameters: {request.args}")
 
@@ -126,7 +126,7 @@ def posts():
             return jsonify({"error": "Invalid post data"}), 400
 
         # Add New Post
-        new_id = max([post['id'] for post in POSTS], default=0) + 1
+        new_id =max((post['id'] for post in POSTS), default=0) + 1
         new_post['id'] = new_id
         POSTS.append(new_post)
         save_posts(POSTS)  # Save to file
@@ -139,11 +139,10 @@ def find_post_by_id(post_id):
 
 
 @app.route('/api/posts/<int:id>', methods=['PUT'])
-@jwt_required()
-def update_post(post_id):
+def update_post(id):
     """ Update a Post"""
     global POSTS
-    post = find_post_by_id(post_id)
+    post = find_post_by_id(id)
     if post is None:
         return jsonify({"error": "Post not found"}), 404
 
@@ -156,10 +155,10 @@ def update_post(post_id):
 #
 @app.route('/api/posts/<int:id>', methods=['DELETE'])
 @limiter.limit("1/minute")
-def delete_post(post_id):
+def delete_post(id):
     """Delete a Post"""
     global POSTS
-    post = find_post_by_id(post_id)
+    post = find_post_by_id(id)
     if post is None:
         return jsonify({"error": "Post not found"}), 404
 
